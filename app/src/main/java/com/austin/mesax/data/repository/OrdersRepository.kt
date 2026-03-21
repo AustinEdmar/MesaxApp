@@ -1,6 +1,5 @@
 package com.austin.mesax.data.repository
 
-import android.util.Log
 import com.austin.mesax.data.api.OrdersApi
 import com.austin.mesax.data.local.dao.CartDao
 import com.austin.mesax.data.local.dao.OrderDao
@@ -17,7 +16,7 @@ import javax.inject.Inject
 class OrdersRepository @Inject constructor (
     private val api: OrdersApi,
     private val orderDao: OrderDao,
-    private val cartDao: CartDao
+   // private val cartDao: CartDao
 ){
 
     private val syncMutex = Mutex()
@@ -59,50 +58,21 @@ class OrdersRepository @Inject constructor (
 
     // 2- CARTS
 
-    suspend fun addToCart(
-        orderId: Int,
-        product: ProductEntity
-    ) {
-
-        if (product.stock <= 0) {
-            throw Exception("Produto sem estoque")
-        }
 
 
 
-        val existingItem =
-            cartDao.getItem(orderId, product.id)
 
-        if (existingItem != null) {
-
-            val updated =
-                existingItem.copy(
-                    quantity = existingItem.quantity + 1,
-                    pendingSync = true
-                )
-
-            cartDao.update(updated)
-
-        } else {
-
-            val item =
-                CartItemEntity(
-                    orderId = orderId,
-                    productId = product.id,
-                    name = product.name,
-                    price = product.price,
-                    quantity = 1,
-                    pendingSync = true
-                )
-
-            cartDao.insert(item)
-        }
-    }
+    //suspend fun deleteCartItem(item: CartItemEntity) {
+    //        cartDao.deleteItem(item.id)
+    //
+    //        syncAddItem()
+    //    }
 
 
     // Função simples para chamar API
 
-   // suspend fun syncAddItem(): String? {
+
+    //suspend fun syncAddItem(): String? = syncMutex.withLock {
     //
     //        try {
     //
@@ -121,64 +91,29 @@ class OrdersRepository @Inject constructor (
     //                if (response.isSuccessful) {
     //
     //                    val updated = item.copy(pendingSync = false)
-    //
     //                    cartDao.update(updated)
     //
     //                } else {
     //
-    //                    val errorBody = response.errorBody()?.string()
-    //
-    //                    return errorBody
+    //                    return response.errorBody()?.string()
     //                }
-    //
     //            }
     //
     //        } catch (e: Exception) {
-    //
     //            return e.message
     //        }
     //
     //        return null
     //    }
+    //
+    //    fun observeCart(orderId: Int?) =
+    //           cartDao.getCart(orderId)
+    //
+    //
+    //    suspend fun updateCartItem(item: CartItemEntity) {
+    //        cartDao.update(item)
+    //    }
 
-
-    suspend fun syncAddItem(): String? = syncMutex.withLock {
-
-        try {
-
-            val items = cartDao.getPendingItems()
-
-            items.forEach { item ->
-
-                val response = api.addItem(
-                    item.orderId,
-                    AddItemRequest(
-                        product_id = item.productId,
-                        quantity = 1
-                      //  quantity = item.quantity
-                    )
-                )
-
-                if (response.isSuccessful) {
-
-                    val updated = item.copy(pendingSync = false)
-                    cartDao.update(updated)
-
-                } else {
-
-                    return response.errorBody()?.string()
-                }
-            }
-
-        } catch (e: Exception) {
-            return e.message
-        }
-
-        return null
-    }
-
-    fun observeCart(orderId: Int?) =
-           cartDao.getCart(orderId)
 
 
 

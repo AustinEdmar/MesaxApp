@@ -6,10 +6,11 @@ import com.austin.mesax.data.local.dao.CartDao
 import com.austin.mesax.data.local.dao.OrderDao
 import com.austin.mesax.data.local.entity.CartItemEntity
 import com.austin.mesax.data.local.entity.OrderEntity
+import com.austin.mesax.data.local.entity.ProductEntity
 
 
 @Database(
-    entities = [OrderEntity::class, CartItemEntity::class],
+    entities = [OrderEntity::class, CartItemEntity::class, ProductEntity::class],
     version = 3,
     exportSchema = false
 )

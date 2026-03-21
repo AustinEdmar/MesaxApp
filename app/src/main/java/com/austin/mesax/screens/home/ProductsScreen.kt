@@ -1,5 +1,6 @@
 package com.austin.mesax.screens.home
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -28,6 +29,7 @@ import com.austin.mesax.screens.home.components.EmptyProductsState
 import com.austin.mesax.screens.home.components.ProductItemCard
 import com.austin.mesax.screens.home.components.ScreenScaffold
 import com.austin.mesax.screens.home.components.SearchDialog
+import com.austin.mesax.viewmodel.CartViewModel
 import com.austin.mesax.viewmodel.OrderViewModel
 import com.austin.mesax.viewmodel.ProductViewModel
 import com.austin.mesax.viewmodel.ShiftViewModel
@@ -43,6 +45,7 @@ fun ProductsScreen(
     shiftViewModel: ShiftViewModel = hiltViewModel(),
     productViewModel: ProductViewModel = hiltViewModel(),
     orderViewModel: OrderViewModel = hiltViewModel(),
+    cartViewModel: CartViewModel = hiltViewModel(),
 ) {
 
     val shift by shiftViewModel.shift.collectAsState()
@@ -51,7 +54,7 @@ fun ProductsScreen(
     val selectedCategory by productViewModel.selectedCategory.collectAsState()
     val orderId by orderViewModel.orderId.collectAsState()
 
-    val cartCount by orderViewModel.cartCount.collectAsState()
+    val cartCount by cartViewModel.cartCount.collectAsState()
 
     var showSearchDialog by remember { mutableStateOf(false) }
 
@@ -65,7 +68,9 @@ fun ProductsScreen(
 
     // 🔑 começa a observar o carrinho dessa order
     LaunchedEffect(orderId) {
-        orderViewModel.observeCart(orderId)
+
+        cartViewModel.observeCart(orderId)
+
     }
 
     LaunchedEffect(error) {
@@ -156,7 +161,7 @@ fun ProductsScreen(
                             }
 
                             orderId?.let {
-                                orderViewModel.addProduct(product, it)
+                                cartViewModel.addProduct(product, it)
                             }
                         }
                     )

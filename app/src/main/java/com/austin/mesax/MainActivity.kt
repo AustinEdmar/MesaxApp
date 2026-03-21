@@ -60,7 +60,8 @@ class MainActivity : ComponentActivity() {
                                 navController.navigate(Screens.Profile.route)
                             },
                             onCartClick = {
-                                navController.navigate(Screens.Cart.route)
+                                // No table selected in Home, cart navigation might need a different logic if used.
+                                // But showCart is false in HomeScreen's ScreenScaffold.
                             }
                         )
                     }
@@ -83,7 +84,7 @@ class MainActivity : ComponentActivity() {
                                 navController.navigate(Screens.Profile.route)
                             },
                             onCartClick = {
-                                navController.navigate(Screens.Cart.route)
+                                navController.navigate(Screens.Cart.createRoute(tableId))
                             },
                             navController = navController,
 
@@ -107,12 +108,21 @@ class MainActivity : ComponentActivity() {
                     }
 
 
-                    composable(Screens.Cart.route) {
-                        CartScreen(
-
-                            onCartClick = {
-                                navController.navigate(Screens.Cart.route)
+                    composable(
+                        route = Screens.Cart.route,
+                        arguments = listOf(
+                            navArgument("tableId") {
+                                type = NavType.IntType
                             }
+                        )
+                    ) { backStackEntry ->
+                        val tableId = backStackEntry.arguments?.getInt("tableId") ?: 0
+                        CartScreen(
+                            tableId = tableId,
+                            onCartClick = {
+                                // Stay on Cart or navigate back
+                            },
+                            navController = navController
                         )
                     }
 

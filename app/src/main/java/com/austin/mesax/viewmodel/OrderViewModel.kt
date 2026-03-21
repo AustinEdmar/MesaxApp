@@ -4,7 +4,7 @@ import android.util.Log
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.austin.mesax.data.local.entity.CartItemEntity
+import com.austin.mesax.data.local.entity.CartItemWithProduct
 import com.austin.mesax.data.local.entity.ProductEntity
 
 import com.austin.mesax.data.repository.OrdersRepository
@@ -33,14 +33,14 @@ class OrderViewModel @Inject constructor(
     private val _orderId = MutableStateFlow<Int?>(null)
     val orderId: StateFlow<Int?> = _orderId
 
-    private val _cartItems = MutableStateFlow<List<CartItemEntity>>(emptyList())
+    private val _cartItems = MutableStateFlow<List<CartItemWithProduct>>(emptyList())
     val cartItems = _cartItems.asStateFlow()
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage = _errorMessage.asStateFlow()
 
     val cartCount = cartItems
-        .map { list -> list.sumOf { it.quantity } }
+        .map { list -> list.sumOf { it.cartItem.quantity } }
         .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
 
@@ -49,20 +49,7 @@ class OrderViewModel @Inject constructor(
 
     }
 
-    fun syncAddItem() {
-        viewModelScope.launch {
 
-            val error = ordersRepository.syncAddItem()
-
-            if (error != null) {
-
-                _errorMessage.value = error
-
-            }
-            Log.d("SYNC", "Chamando syncOrders")
-        }
-
-    }
     fun syncOrders() {
         viewModelScope.launch {
             ordersRepository.syncOrders()
@@ -93,31 +80,10 @@ class OrderViewModel @Inject constructor(
         }
     }
 
-
-    fun addProduct(product: ProductEntity, orderId: Int) {
-
-        viewModelScope.launch {
-
-            ordersRepository.addToCart(orderId, product)
-            Log.d("CART", orderId.toString())
-            syncAddItem()
-        }
-    }
+    //cart
 
 
-
-
-
-
-
-    fun observeCart(orderId: Int?) {
-        viewModelScope.launch {
-            ordersRepository.observeCart(orderId).collect {
-                _cartItems.value = it
-                Log.d("CART", it.toString())
-            }
-        }
-    }
+    
 
 
 

@@ -6,7 +6,9 @@ import com.austin.mesax.data.local.entity.TableEntity
 sealed class Screens(val route: String) {
 
 
-    object Cart: Screens("cart")
+    object Cart: Screens("cart/{tableId}") {
+        fun createRoute(tableId: Int) = "cart/$tableId"
+    }
 
     object MainScreen: Screens("MainScreen")
     object Profile: Screens("profile")
