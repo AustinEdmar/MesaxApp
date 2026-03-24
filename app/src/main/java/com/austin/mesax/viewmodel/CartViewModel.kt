@@ -11,6 +11,8 @@ import com.austin.mesax.data.repository.CartRepository
 import com.austin.mesax.data.repository.OrdersRepository
 
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -48,7 +50,16 @@ class CartViewModel @Inject constructor(
 
     }
 
+    private var syncJob: Job? = null
 
+    fun triggerSync() {
+        syncJob?.cancel()
+
+        syncJob = viewModelScope.launch {
+            delay(400) // espera o usuário parar de clicar
+            cartRepository.syncAddItem()
+        }
+    }
     fun syncAddItem() {
         viewModelScope.launch {
 
@@ -73,7 +84,8 @@ class CartViewModel @Inject constructor(
 
             cartRepository.addToCart(orderId, product)
             Log.d("CART", orderId.toString())
-            syncAddItem()
+            triggerSync() // 🔥 não chama direto
+           // syncAddItem()
         }
     }
 

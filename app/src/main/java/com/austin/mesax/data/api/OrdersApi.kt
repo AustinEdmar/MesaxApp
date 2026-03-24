@@ -24,11 +24,7 @@ interface OrdersApi {
     suspend fun getOrders(): List<OrdersDTO>
 
 
-   // @POST("orders/{orderId}/add-item")
-    //    suspend fun addItem(
-    //        @Path("orderId") orderId: Int,
-    //        @Body request: AddItemRequest
-    //    ): OrderActionResponse
+
 
     @POST("orders/{orderId}/add-item")
     suspend fun addItem(

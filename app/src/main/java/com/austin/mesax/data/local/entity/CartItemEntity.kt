@@ -26,6 +26,7 @@ data class CartItemEntity(
     val productId: Int,
 
     val quantity: Int = 1,
+    val delta: Int = 0,
 
     val pendingSync: Boolean = true
 )

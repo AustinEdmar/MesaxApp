@@ -19,6 +19,7 @@ class CartRepository @Inject constructor (
 ){
 
     private val syncMutex = Mutex()
+    private val cartMutex = Mutex()
 
 
 
@@ -68,11 +69,16 @@ class CartRepository @Inject constructor (
     //    }
 
 
+    //suspend fun addToCart(orderId: Int, product: ProductEntity) {
+    //        cartDao.addToCartTransaction(orderId, product)
+    //    }
+
+
     suspend fun addToCart(orderId: Int, product: ProductEntity) {
-        cartDao.addToCartTransaction(orderId, product)
+        cartMutex.withLock {
+            cartDao.addToCartTransaction(orderId, product)
+        }
     }
-
-
 
 
 
@@ -93,18 +99,23 @@ class CartRepository @Inject constructor (
             val items = cartDao.getPendingItems()
 
             items.forEach { item ->
-
+                if (item.delta <= 0) return@forEach // 🔥 ignora lixo
                 val response = api.addItem(
                     item.orderId,
                     AddItemRequest(
                         product_id = item.productId,
-                        quantity = item.quantity
+                        quantity = item.delta // 🔥 apenas o delta
+                      //  quantity = 1
                     )
                 )
 
                 if (response.isSuccessful) {
 
-                    val updated = item.copy(pendingSync = false)
+                    val updated = item.copy(
+                        pendingSync = false,
+                        delta = 0 // 🔥 limpa depois de sincronizar
+
+                    )
                     cartDao.update(updated)
 
                 } else {
@@ -127,12 +138,6 @@ class CartRepository @Inject constructor (
     suspend fun updateCartItem(item: CartItemEntity) {
         cartDao.update(item)
     }
-
-
-
-
-
-
 
 
 }

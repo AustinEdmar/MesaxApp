@@ -24,6 +24,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,12 +42,14 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.austin.mesax.data.local.entity.TableEntity
+import com.austin.mesax.data.model.UiStates.AuthUiState
 import com.austin.mesax.screens.home.components.LegendItem
 import com.austin.mesax.screens.home.components.ScreenScaffold
 import com.austin.mesax.data.model.UiStates.TablesUiState
 import com.austin.mesax.navigation.Screens
 import com.austin.mesax.screens.home.components.OpenTurnDialog
 import com.austin.mesax.screens.home.components.TableItem
+import com.austin.mesax.viewmodel.AuthViewModel
 import com.austin.mesax.viewmodel.OrderViewModel
 import com.austin.mesax.viewmodel.ShiftViewModel
 import com.austin.mesax.viewmodel.TableViewModel
@@ -63,8 +66,21 @@ fun HomeScreen(
     shiftViewModel: ShiftViewModel = hiltViewModel(),
     tableViewModel: TableViewModel = hiltViewModel(),
     orderViewModel: OrderViewModel = hiltViewModel(),
+    AuthviewModel: AuthViewModel = hiltViewModel(),
 
     ) {
+
+    //auth first
+
+    val uiState = AuthviewModel.uiState
+    // navegação reativa ao estado
+    LaunchedEffect(uiState) {
+        if (uiState is AuthUiState.Unauthenticated) {
+            navController.navigate(Screens.Login.route) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
     // Controla a visibilidade do dialog
     var showAbrirTurnoDialog by remember { mutableStateOf(true) }
 

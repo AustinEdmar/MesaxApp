@@ -104,9 +104,15 @@ interface CartDao {
         // 3. Gerencia o item no carrinho
         val existingItem = getItem(orderId, product.id)
 
+        //val updated = existingItem.copy(
+        //    quantity = existingItem.quantity + 1,
+        //    delta = existingItem.delta + 1,
+        //    pendingSync = true
+        //)
         if (existingItem != null) {
             update(existingItem.copy(
                 quantity = existingItem.quantity + 1,
+                delta = existingItem.delta + 1,
                 pendingSync = true
             ))
         } else {
@@ -114,6 +120,7 @@ interface CartDao {
                 orderId = orderId,
                 productId = product.id,
                 quantity = 1,
+                delta = 1, // 🔥 ESSENCIAL
                 pendingSync = true
             ))
         }

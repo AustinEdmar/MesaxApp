@@ -24,11 +24,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import com.austin.mesax.data.model.UiStates.AuthUiState
+import com.austin.mesax.navigation.Screens
 import com.austin.mesax.screens.home.components.EmptyProductsState
 
 import com.austin.mesax.screens.home.components.ProductItemCard
 import com.austin.mesax.screens.home.components.ScreenScaffold
 import com.austin.mesax.screens.home.components.SearchDialog
+import com.austin.mesax.viewmodel.AuthViewModel
 import com.austin.mesax.viewmodel.CartViewModel
 import com.austin.mesax.viewmodel.OrderViewModel
 import com.austin.mesax.viewmodel.ProductViewModel
@@ -38,7 +41,7 @@ import com.austin.mesax.viewmodel.ShiftViewModel
 fun ProductsScreen(
     tableId: Int,
     navController: NavHostController? = null,
-    
+
     onProfileClick: () -> Unit,
     onCartClick: () -> Unit,
 
@@ -46,7 +49,20 @@ fun ProductsScreen(
     productViewModel: ProductViewModel = hiltViewModel(),
     orderViewModel: OrderViewModel = hiltViewModel(),
     cartViewModel: CartViewModel = hiltViewModel(),
+    AuthviewModel: AuthViewModel = hiltViewModel(),
 ) {
+
+    //auth first
+
+    val uiState = AuthviewModel.uiState
+    // navegação reativa ao estado
+    LaunchedEffect(uiState) {
+        if (uiState is AuthUiState.Unauthenticated) {
+            navController?.navigate(Screens.Login.route) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
 
     val shift by shiftViewModel.shift.collectAsState()
     val products by productViewModel.products.collectAsState()
