@@ -8,7 +8,10 @@ import com.austin.mesax.data.local.entity.CategoryEntity
 import com.austin.mesax.data.local.entity.ProductEntity
 import com.austin.mesax.data.local.mapper.toEntity
 import jakarta.inject.Inject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 
 class ProductRepository @Inject constructor(
     private val api: ProductApi,
@@ -28,6 +31,21 @@ class ProductRepository @Inject constructor(
     }
 
     // 🔹 Sincronização remota
+
+
+    fun startAutoSync(scope: CoroutineScope) {
+        scope.launch {
+            while (true) {
+                try {
+                    syncAll()
+                } catch (e: Exception) {
+                    Log.e("SYNC", "Erro", e)
+                }
+
+                delay(10000) // 10 segundos
+            }
+        }
+    }
 
     suspend fun syncAll() {
         try {

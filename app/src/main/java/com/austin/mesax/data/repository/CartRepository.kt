@@ -23,60 +23,23 @@ class CartRepository @Inject constructor (
 
 
 
- //   suspend fun addToCart(
-    //        orderId: Int,
-    //        product: ProductEntity
-    //    ) {
-    //
-    //        if (product.stock <= 0) {
-    //            throw Exception("Produto sem estoque")
-    //        }
-    //
-    //        // ✅ diminui o stock corretamente
-    //        product.stock -= 1
-    //
-    //        // Garante que o product exist no banco de dados de pedidos (foreign key)
-    //        cartDao.insertProduct(product)
-    //
-    //        // ✅ Persiste a diminuição do estoque no banco de dados
-    //        cartDao.updateProduct(product)
-    //
-    //        val existingItem =
-    //            cartDao.getItem(orderId, product.id)
-    //
-    //        if (existingItem != null) {
-    //
-    //            val updated =
-    //                existingItem.copy(
-    //                    quantity = existingItem.quantity + 1,
-    //                    pendingSync = true
-    //                )
-    //
-    //            cartDao.update(updated)
-    //
-    //        } else {
-    //
-    //            val item =
-    //                CartItemEntity(
-    //                    orderId = orderId,
-    //                    productId = product.id,
-    //                    quantity = 1,
-    //                    pendingSync = true
-    //                )
-    //
-    //            cartDao.insert(item)
-    //        }
-    //    }
-
-
-    //suspend fun addToCart(orderId: Int, product: ProductEntity) {
-    //        cartDao.addToCartTransaction(orderId, product)
-    //    }
-
 
     suspend fun addToCart(orderId: Int, product: ProductEntity) {
         cartMutex.withLock {
             cartDao.addToCartTransaction(orderId, product)
+        }
+    }
+
+
+    suspend fun increaseQuantity(item: CartItemEntity) {
+        cartMutex.withLock {
+            cartDao.increaseQuantityTransaction(item)
+        }
+    }
+
+    suspend fun decreaseQuantity(item: CartItemEntity) {
+        cartMutex.withLock {
+            cartDao.decreaseQuantityTransaction(item)
         }
     }
 
@@ -91,6 +54,71 @@ class CartRepository @Inject constructor (
 
     // Função simples para chamar API
 
+//    suspend fun syncAddItem(): String? = syncMutex.withLock {
+//
+//        try {
+//
+//            val items = cartDao.getPendingItems()
+//
+//            items.forEach { item ->
+//
+//                when {
+//
+//                    // 🔼 INCREMENTAR
+//                    item.delta > 0 -> {
+//
+//                        val response = api.addItem(
+//                            item.orderId,
+//                            AddItemRequest(
+//                                product_id = item.productId,
+//                                quantity = item.delta
+//                            )
+//                        )
+//
+//                        if (!response.isSuccessful) {
+//                            return response.errorBody()?.string()
+//                        }
+//                    }
+//
+//                    // 🔽 DECREMENTAR
+//                    item.delta < 0 -> {
+//
+//                        repeat(kotlin.math.abs(item.delta)) {
+//
+//                            val response = api.decrementItem(
+//                                item.orderId,
+//                                AddItemRequest(
+//                                    product_id = item.productId,
+//                                    quantity = 1
+//                                )
+//                            )
+//
+//                            if (!response.isSuccessful) {
+//                                return response.errorBody()?.string()
+//                            }
+//                        }
+//                    }
+//                }
+//
+//                // 🔥 limpa depois de sincronizar
+//                val updated = item.copy(
+//                    pendingSync = false,
+//                    delta = 0
+//                )
+//
+//                cartDao.update(updated)
+//
+//                if (updated.quantity == 0) {
+//                    cartDao.deleteItem(updated.id)
+//                }
+//            }
+//
+//        } catch (e: Exception) {
+//            return e.message
+//        }
+//
+//        return null
+//    }
 
     suspend fun syncAddItem(): String? = syncMutex.withLock {
 
@@ -99,28 +127,62 @@ class CartRepository @Inject constructor (
             val items = cartDao.getPendingItems()
 
             items.forEach { item ->
-                if (item.delta <= 0) return@forEach // 🔥 ignora lixo
-                val response = api.addItem(
-                    item.orderId,
-                    AddItemRequest(
-                        product_id = item.productId,
-                        quantity = item.delta // 🔥 apenas o delta
-                      //  quantity = 1
-                    )
+
+                when {
+
+                    // 🔼 INCREMENTAR
+                    item.delta > 0 -> {
+
+                        val response = api.addItem(
+                            item.orderId,
+                            AddItemRequest(
+                                product_id = item.productId,
+                                quantity = item.delta
+                            )
+                        )
+
+                        if (!response.isSuccessful) {
+                            return response.errorBody()?.string()
+                        }
+                    }
+
+                    // 🔽 DECREMENTAR
+                    item.delta < 0 -> {
+
+                        repeat(kotlin.math.abs(item.delta)) {
+
+                            val response = api.decrementItem(
+                                item.orderId,
+                                AddItemRequest(
+                                    product_id = item.productId,
+                                    quantity = 1
+                                )
+                            )
+
+                            if (!response.isSuccessful) {
+                                return response.errorBody()?.string()
+                            }
+                        }
+                    }
+                }
+
+                // 🔥 pega item atualizado do banco
+                val current = cartDao.getItem(
+                    orderId = item.orderId,
+                    productId = item.productId
+                ) ?: return@forEach
+
+                // 🔥 limpa depois de sincronizar
+                val updated = current.copy(
+                    pendingSync = false,
+                    delta = 0
                 )
 
-                if (response.isSuccessful) {
+                cartDao.update(updated)
 
-                    val updated = item.copy(
-                        pendingSync = false,
-                        delta = 0 // 🔥 limpa depois de sincronizar
-
-                    )
-                    cartDao.update(updated)
-
-                } else {
-
-                    return response.errorBody()?.string()
+                // 🔥 deleta apenas depois do sync
+                if (updated.quantity == 0) {
+                    cartDao.deleteItem(updated.id)
                 }
             }
 

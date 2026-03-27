@@ -14,12 +14,12 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface CartDao {
 
+    @Transaction
     @Query("""
-        SELECT * FROM cart_items
-        WHERE orderId = :orderId
-    """)
+    SELECT * FROM cart_items
+    WHERE orderId = :orderId
+""")
     fun getCart(orderId: Int?): Flow<List<CartItemWithProduct>>
-
 
     @Query("""
         SELECT * FROM cart_items
@@ -47,6 +47,14 @@ interface CartDao {
         WHERE id = :productId AND stock > 0
     """)
     suspend fun decrementStock(productId: Int): Int
+
+
+    @Query("""
+    UPDATE products 
+    SET stock = stock + 1
+    WHERE id = :productId
+""")
+    suspend fun incrementStock(productId: Int)
 
     @Query("""
     UPDATE cart_items
@@ -124,5 +132,41 @@ interface CartDao {
                 pendingSync = true
             ))
         }
+    }
+
+
+    @Transaction
+    suspend fun increaseQuantityTransaction(item: CartItemEntity) {
+
+        val rowsAffected = decrementStock(item.productId)
+
+        if (rowsAffected == 0) {
+            throw Exception("Produto sem estoque")
+        }
+
+        update(
+            item.copy(
+                quantity = item.quantity + 1,
+                delta = item.delta + 1,
+                pendingSync = true
+            )
+        )
+    }
+
+
+    @Transaction
+    suspend fun decreaseQuantityTransaction(item: CartItemEntity) {
+
+        val newQuantity = item.quantity - 1
+
+        incrementStock(item.productId)
+
+        update(
+            item.copy(
+                quantity = newQuantity,
+                delta = item.delta - 1,
+                pendingSync = true
+            )
+        )
     }
 }

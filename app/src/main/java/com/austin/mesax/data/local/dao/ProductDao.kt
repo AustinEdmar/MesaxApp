@@ -25,6 +25,8 @@ interface ProductDao {
 
 
 
+
+
     @Query("DELETE FROM products")
     suspend fun clearAll()
 }

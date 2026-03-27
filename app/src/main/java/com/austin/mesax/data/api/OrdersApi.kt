@@ -32,4 +32,12 @@ interface OrdersApi {
         @Body request: AddItemRequest
     ): Response<OrderActionResponse>
 
+
+
+    @POST("orders/{orderId}/decrement-item")
+    suspend fun decrementItem(
+        @Path("orderId") orderId: Int,
+        @Body request: AddItemRequest
+    ): Response<OrderActionResponse>
+
 }
