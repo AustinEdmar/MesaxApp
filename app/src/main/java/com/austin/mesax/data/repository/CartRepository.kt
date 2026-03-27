@@ -7,6 +7,8 @@ import com.austin.mesax.data.local.entity.CartItemEntity
 import com.austin.mesax.data.local.entity.ProductEntity
 import com.austin.mesax.data.local.mapper.toEntity
 import com.austin.mesax.data.model.OrderResquest.AddItemRequest
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -21,6 +23,8 @@ class CartRepository @Inject constructor (
     private val syncMutex = Mutex()
     private val cartMutex = Mutex()
 
+    private val _navigationEvent = MutableSharedFlow<Unit>()
+    val navigationEvent = _navigationEvent.asSharedFlow()
 
 
 
@@ -45,80 +49,12 @@ class CartRepository @Inject constructor (
 
 
 
-    suspend fun deleteCartItem(item: CartItemEntity) {
-        cartDao.deleteItem(item.id)
 
-        syncAddItem()
-    }
 
 
     // Função simples para chamar API
 
-//    suspend fun syncAddItem(): String? = syncMutex.withLock {
-//
-//        try {
-//
-//            val items = cartDao.getPendingItems()
-//
-//            items.forEach { item ->
-//
-//                when {
-//
-//                    // 🔼 INCREMENTAR
-//                    item.delta > 0 -> {
-//
-//                        val response = api.addItem(
-//                            item.orderId,
-//                            AddItemRequest(
-//                                product_id = item.productId,
-//                                quantity = item.delta
-//                            )
-//                        )
-//
-//                        if (!response.isSuccessful) {
-//                            return response.errorBody()?.string()
-//                        }
-//                    }
-//
-//                    // 🔽 DECREMENTAR
-//                    item.delta < 0 -> {
-//
-//                        repeat(kotlin.math.abs(item.delta)) {
-//
-//                            val response = api.decrementItem(
-//                                item.orderId,
-//                                AddItemRequest(
-//                                    product_id = item.productId,
-//                                    quantity = 1
-//                                )
-//                            )
-//
-//                            if (!response.isSuccessful) {
-//                                return response.errorBody()?.string()
-//                            }
-//                        }
-//                    }
-//                }
-//
-//                // 🔥 limpa depois de sincronizar
-//                val updated = item.copy(
-//                    pendingSync = false,
-//                    delta = 0
-//                )
-//
-//                cartDao.update(updated)
-//
-//                if (updated.quantity == 0) {
-//                    cartDao.deleteItem(updated.id)
-//                }
-//            }
-//
-//        } catch (e: Exception) {
-//            return e.message
-//        }
-//
-//        return null
-//    }
+
 
     suspend fun syncAddItem(): String? = syncMutex.withLock {
 
@@ -147,7 +83,7 @@ class CartRepository @Inject constructor (
                     }
 
                     // 🔽 DECREMENTAR
-                    item.delta < 0 -> {
+                   item.delta < 0 -> {
 
                         repeat(kotlin.math.abs(item.delta)) {
 
@@ -183,6 +119,16 @@ class CartRepository @Inject constructor (
                 // 🔥 deleta apenas depois do sync
                 if (updated.quantity == 0) {
                     cartDao.deleteItem(updated.id)
+                    cartDao.deleteProduct(updated.productId)
+                    // 🔥 dispara evento
+                    // 🔥 verifica se carrinho ficou vazio
+                    val remainingItems = cartDao.getAllItems()
+
+                    if (remainingItems.isEmpty()) {
+                        _navigationEvent.emit(Unit)
+                    }
+
+
                 }
             }
 
@@ -197,9 +143,7 @@ class CartRepository @Inject constructor (
            cartDao.getCart(orderId)
 
 
-    suspend fun updateCartItem(item: CartItemEntity) {
-        cartDao.update(item)
-    }
+
 
 
 }

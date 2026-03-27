@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.austin.mesax.data.model.UiStates.AuthUiState
 import com.austin.mesax.navigation.Screens
@@ -49,9 +50,12 @@ fun ProductsScreen(
     orderViewModel: OrderViewModel = hiltViewModel(),
     cartViewModel: CartViewModel = hiltViewModel(),
     AuthviewModel: AuthViewModel = hiltViewModel(),
+
 ) {
 
     //auth first
+
+    val cartitems by cartViewModel.cartItems.collectAsStateWithLifecycle()
 
     val uiState = AuthviewModel.uiState
     // navegação reativa ao estado
@@ -99,11 +103,14 @@ fun ProductsScreen(
     }
 
 
+
+
+
     ScreenScaffold(
         amountTitle = "Caixa: ${shift?.userName ?: "Nenhum"}",
         title = "Mesa: $tableId",
         showMenu = true,
-        showCart = true,
+        showCart = cartitems.isNotEmpty(), // em vez bollean  chamei o tamanho da lista, que esta  val cartitems by cartViewModel.cartItems.collectAsStateWithLifecycle()
         showSearch = true,
         cartCount = cartCount,
         showProfile = true,

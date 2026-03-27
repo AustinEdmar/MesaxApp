@@ -2,6 +2,7 @@ package com.austin.mesax.data.repository
 
 import android.util.Log
 import com.austin.mesax.data.api.ProductApi
+import com.austin.mesax.data.local.dao.CartDao
 import com.austin.mesax.data.local.dao.CategoryDao
 import com.austin.mesax.data.local.dao.ProductDao
 import com.austin.mesax.data.local.entity.CategoryEntity
@@ -16,7 +17,8 @@ import kotlinx.coroutines.launch
 class ProductRepository @Inject constructor(
     private val api: ProductApi,
     private val productDao: ProductDao,
-    private val categoryDao: CategoryDao
+    private val categoryDao: CategoryDao,
+    private val cartDao: CartDao
 ) {
     // 🔹 UI sempre observa o banco
     fun observeProducts(
@@ -67,6 +69,10 @@ class ProductRepository @Inject constructor(
             productDao.clearAll()
             productDao.insertAll(productEntities)
             Log.d("SYNC_DEBUG", "Produtos inseridos: ${productEntities.size}")
+
+            // 🔹 Forçar atualização do carrinho
+            val productIds = productEntities.map { it.id }
+            cartDao.refreshCartItems(productIds)
 
         } catch (e: Exception) {
             Log.e("SYNC_ERROR", "Erro sync", e)

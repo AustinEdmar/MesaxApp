@@ -14,6 +14,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
@@ -30,7 +31,7 @@ class CartViewModel @Inject constructor(
 
     ) : ViewModel() {
 
-
+    val navigationEvent = cartRepository.navigationEvent
     private val _cartItems = MutableStateFlow<List<CartItemWithProduct>>(emptyList())
     val cartItems = _cartItems.asStateFlow()
 
@@ -78,13 +79,12 @@ class CartViewModel @Inject constructor(
 
 
     fun observeCart(orderId: Int?) {
-        Log.d("CART_VM", "orderId recebido: $orderId")
-
         viewModelScope.launch {
-            cartRepository.observeCart(orderId).collect {
-                Log.d("CART_VM", "Recebeu: $it")
-                _cartItems.value = it
-            }
+            cartRepository.observeCart(orderId)
+                .distinctUntilChanged()
+                .collect {
+                    _cartItems.value = it
+                }
         }
     }
 

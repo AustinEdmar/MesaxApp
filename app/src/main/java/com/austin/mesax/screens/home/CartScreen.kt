@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.austin.mesax.data.model.CartItem
 
@@ -60,9 +61,11 @@ fun CartScreen(
 ) {
     val shift     by shiftViewModel.shift.collectAsState()
     val cartCount by orderViewModel.cartCount.collectAsState()
+
     val orderId by orderViewModel.orderId.collectAsState()
 
-    val cartitems by cartViewModel.cartItems.collectAsState()
+
+    val cartitems by cartViewModel.cartItems.collectAsStateWithLifecycle()
 
 
     LaunchedEffect(tableId) {
@@ -74,6 +77,12 @@ fun CartScreen(
 
         cartViewModel.observeCart(orderId)
 
+    }
+
+    LaunchedEffect(Unit) {
+        cartViewModel.navigationEvent.collect {
+            navController?.popBackStack()
+        }
     }
 
 

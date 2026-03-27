@@ -70,6 +70,14 @@ interface CartDao {
 """)
     suspend fun deleteItem(itemId: Int)
 
+
+    @Query("""
+    DELETE FROM products
+    WHERE id = :productId
+""")
+    suspend fun deleteProduct(productId: Int)
+
+
     @Update
     suspend fun updateProduct(product: ProductEntity)
 
@@ -169,4 +177,18 @@ interface CartDao {
             )
         )
     }
+
+
+
+    @Query("""
+    UPDATE cart_items
+    SET quantity = quantity
+    WHERE productId IN (:productIds)
+""")
+    fun refreshCartItems(productIds: List<Int>)
+
+
+
+    @Query("SELECT * FROM cart_items")
+    suspend fun getAllItems(): List<CartItemEntity>
 }
