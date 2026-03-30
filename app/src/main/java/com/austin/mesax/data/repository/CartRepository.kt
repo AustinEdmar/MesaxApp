@@ -35,7 +35,7 @@ class CartRepository @Inject constructor (
     }
 
 
-    suspend fun increaseQuantity(item: CartItemEntity) {
+    suspend fun increaseQuantity(item: CartItemEntity){
         cartMutex.withLock {
             cartDao.increaseQuantityTransaction(item)
         }
@@ -118,11 +118,16 @@ class CartRepository @Inject constructor (
 
                 // 🔥 deleta apenas depois do sync
                 if (updated.quantity == 0) {
-                    cartDao.deleteItem(updated.id)
-                    cartDao.deleteProduct(updated.productId)
-                    // 🔥 dispara evento
+                    cartDao.deleteItem(updated.id,
+                        updated.orderId)
+
+                   // cartDao.deleteProduct(updated.productId)
+                    cartDao.deleteProductIfNotInCart(updated.productId)
+
+
                     // 🔥 verifica se carrinho ficou vazio
                     val remainingItems = cartDao.getAllItems()
+                    //cartDao.deleteProduct(updated.productId)
 
                     if (remainingItems.isEmpty()) {
                         _navigationEvent.emit(Unit)
@@ -141,9 +146,5 @@ class CartRepository @Inject constructor (
 
     fun observeCart(orderId: Int?) =
            cartDao.getCart(orderId)
-
-
-
-
 
 }

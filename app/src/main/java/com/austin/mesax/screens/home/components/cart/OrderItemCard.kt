@@ -31,7 +31,9 @@ import com.austin.mesax.data.model.CartItem
  fun OrderItemCard(
     item: CartItem,
     onIncrease: () -> Unit,
-    onDecrease: () -> Unit
+    onDecrease: () -> Unit,
+    increaseEnabled: Boolean,
+    decreaseEnabled: Boolean
 ) {
     Card(
         modifier = Modifier
@@ -79,7 +81,16 @@ import com.austin.mesax.data.model.CartItem
                 }
             }
             Spacer(modifier = Modifier.width(8.dp))
-            QuantityStepperCart(item.quantity, onIncrease, onDecrease)
+
+            QuantityStepperCart(
+                quantity = item.quantity,
+                onIncrease = onIncrease,
+                onDecrease = onDecrease,
+                decreaseEnabled = decreaseEnabled,
+                increaseEnabled = increaseEnabled
+
+
+            )
         }
     }
 }

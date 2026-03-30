@@ -60,12 +60,15 @@ fun CartScreen(
     cartViewModel: CartViewModel = hiltViewModel()
 ) {
     val shift     by shiftViewModel.shift.collectAsState()
-    val cartCount by orderViewModel.cartCount.collectAsState()
+
+    val cartCount by cartViewModel.cartCount.collectAsState()
 
     val orderId by orderViewModel.orderId.collectAsState()
 
 
     val cartitems by cartViewModel.cartItems.collectAsStateWithLifecycle()
+
+
 
 
     LaunchedEffect(tableId) {
@@ -111,9 +114,10 @@ fun CartScreen(
 
     ScreenScaffold(
         amountTitle = "Caixa: ${shift?.userName ?: "Nenhum"}",
-        title = "Mesa: $",
+        title = "Mesa: $tableId",
         showMenu = true,
-        showCart = false,
+        //showCart = false,
+        showCart = cartitems.isNotEmpty(), // em vez bollean  chamei o tamanho da lista, que esta  val cartitems by cartViewModel.cartItems.collectAsStateWithLifecycle()
         showSearch = false,
         cartCount = cartCount,
         showProfile = true,
@@ -141,21 +145,19 @@ fun CartScreen(
                                 imageUrl  = product.imageUrl
                             ),
                             onIncrease = {
+
                                 cartViewModel.increaseQuantity(cartItemWithProduct)
                             },
                             onDecrease = {
                                 cartViewModel.decreaseQuantity(cartItemWithProduct)
-                            }
+                            },
+                                    //decreaseEnabled = product.stock > 0,
+                            decreaseEnabled = cartItemWithProduct.cartItem.quantity > 0,
+                                    increaseEnabled = product.stock > 1
 
-                            //onIncrease = {
-                            //                            val idx = items.indexOf(item)
-                            //                            if (idx >= 0) items[idx] = item.copy(quantity = item.quantity + 1)
-                            //                        },
-                            //                        onDecrease = {
-                            //                            val idx = items.indexOf(item)
-                            //                            if (idx >= 0 && item.quantity > 1)
-                            //                                items[idx] = item.copy(quantity = item.quantity - 1)
-                            //                        }
+
+
+
                         )
                     }
                 }

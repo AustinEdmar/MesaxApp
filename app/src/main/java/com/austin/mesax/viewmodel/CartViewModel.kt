@@ -54,7 +54,7 @@ class CartViewModel @Inject constructor(
         syncJob?.cancel()
 
         syncJob = viewModelScope.launch {
-            delay(400) // espera o usuário parar de clicar
+            delay(5000) // espera o usuário parar de clicar
             cartRepository.syncAddItem()
 
         }

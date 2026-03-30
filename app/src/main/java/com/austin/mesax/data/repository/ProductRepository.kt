@@ -72,7 +72,7 @@ class ProductRepository @Inject constructor(
 
             // 🔹 Forçar atualização do carrinho
             val productIds = productEntities.map { it.id }
-            cartDao.refreshCartItems(productIds)
+           // cartDao.refreshCartItems(productIds)
 
         } catch (e: Exception) {
             Log.e("SYNC_ERROR", "Erro sync", e)

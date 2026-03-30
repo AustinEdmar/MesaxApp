@@ -66,9 +66,11 @@ interface CartDao {
 
     @Query("""
     DELETE FROM cart_items
-    WHERE id = :itemId
+    WHERE id = :itemId AND orderId = :orderId
 """)
-    suspend fun deleteItem(itemId: Int)
+    suspend fun deleteItem(itemId: Int, orderId: Int)
+
+
 
 
     @Query("""
@@ -104,44 +106,54 @@ interface CartDao {
     """)
     suspend fun getPendingItems(): List<CartItemEntity>
 
+
+
+    @Query("""
+UPDATE cart_items
+SET 
+    quantity = quantity + 1,
+    delta = delta + 1,
+    pendingSync = 1
+WHERE orderId = :orderId AND productId = :productId
+""")
+    suspend fun increaseQuantity(orderId: Int, productId: Int): Int
+
+
+    @Query("""
+UPDATE cart_items
+SET 
+    quantity = quantity - 1,
+    delta = delta - 1,
+    pendingSync = 1
+WHERE id = :itemId
+""")
+    suspend fun decreaseQuantity(itemId: Int)
+
     @Transaction
     suspend fun addToCartTransaction(orderId: Int, product: ProductEntity) {
-        // 1. Garante que o produto existe na base local (necessário para FK)
+
         insertProduct(product)
 
-        // 2. Tenta decrementar o estoque atomicamente
         val rowsAffected = decrementStock(product.id)
 
         if (rowsAffected == 0) {
-            // Se nenhuma linha foi afetada, o estoque já era 0 (ou o produto sumiu)
-            throw Exception("Produto sem estoque ou indisponível")
+            throw Exception("Produto sem estoque")
         }
 
-        // 3. Gerencia o item no carrinho
-        val existingItem = getItem(orderId, product.id)
+        val rows = increaseQuantity(orderId, product.id)
 
-        //val updated = existingItem.copy(
-        //    quantity = existingItem.quantity + 1,
-        //    delta = existingItem.delta + 1,
-        //    pendingSync = true
-        //)
-        if (existingItem != null) {
-            update(existingItem.copy(
-                quantity = existingItem.quantity + 1,
-                delta = existingItem.delta + 1,
-                pendingSync = true
-            ))
-        } else {
-            insert(CartItemEntity(
-                orderId = orderId,
-                productId = product.id,
-                quantity = 1,
-                delta = 1, // 🔥 ESSENCIAL
-                pendingSync = true
-            ))
+        if (rows == 0) {
+            insert(
+                CartItemEntity(
+                    orderId = orderId,
+                    productId = product.id,
+                    quantity = 1,
+                    delta = 1,
+                    pendingSync = true
+                )
+            )
         }
     }
-
 
     @Transaction
     suspend fun increaseQuantityTransaction(item: CartItemEntity) {
@@ -152,43 +164,45 @@ interface CartDao {
             throw Exception("Produto sem estoque")
         }
 
-        update(
-            item.copy(
-                quantity = item.quantity + 1,
-                delta = item.delta + 1,
-                pendingSync = true
-            )
-        )
+        increaseQuantity(item.orderId, item.productId)
     }
-
 
     @Transaction
     suspend fun decreaseQuantityTransaction(item: CartItemEntity) {
 
-        val newQuantity = item.quantity - 1
-
         incrementStock(item.productId)
 
-        update(
-            item.copy(
-                quantity = newQuantity,
-                delta = item.delta - 1,
-                pendingSync = true
-            )
-        )
+        decreaseQuantity(item.id)
+
+        deleteProductIfNotInCart(item.productId)
     }
-
-
 
     @Query("""
     UPDATE cart_items
     SET quantity = quantity
     WHERE productId IN (:productIds)
 """)
-    fun refreshCartItems(productIds: List<Int>)
+    suspend fun refreshCartItems(productIds: List<Int>)
 
 
 
     @Query("SELECT * FROM cart_items")
     suspend fun getAllItems(): List<CartItemEntity>
+
+
+    //se um produto não estiver presente em nenhum item do carrinho (cart_items),
+    // //ele deve ser deletado da tabela products. Isso pode ser feito diretamente
+    // com uma query que faz DELETE condicional usando NOT EXISTS ou LEFT JOIN.
+    @Query("""
+    DELETE FROM products
+    WHERE id = :productId
+    AND NOT EXISTS (
+        SELECT 1 FROM cart_items
+        WHERE productId = :productId
+    )
+""")
+    suspend fun deleteProductIfNotInCart(productId: Int)
+
+
+
 }

@@ -30,7 +30,10 @@ import androidx.compose.ui.unit.sp
 fun QuantityStepperCart(
     quantity: Int,
     onIncrease: () -> Unit,
-    onDecrease: () -> Unit
+    onDecrease: () -> Unit,
+    decreaseEnabled: Boolean,
+    increaseEnabled: Boolean
+
 ) {
     Column(
 
@@ -38,8 +41,9 @@ fun QuantityStepperCart(
         OutlinedIconButton(
             onClick = onDecrease,
             modifier = Modifier.size(30.dp),
+            enabled = decreaseEnabled,
             shape = CircleShape,
-            border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary),
+            border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary),
             colors = IconButtonDefaults.outlinedIconButtonColors(containerColor = Color.Transparent, contentColor = MaterialTheme.colorScheme.primary)
         ) {
             Icon(Icons.Default.Remove, contentDescription = "Diminuir", modifier = Modifier.size(14.dp))
@@ -58,6 +62,7 @@ fun QuantityStepperCart(
         Spacer(modifier = Modifier.padding(top = 2.dp))
         OutlinedIconButton(
             onClick = onIncrease,
+            enabled = increaseEnabled,
             modifier = Modifier.size(30.dp),
             shape = CircleShape,
             border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary),

@@ -67,7 +67,7 @@ class ProductViewModel @Inject constructor(
         viewModelScope.launch {
             productRepository.startAutoSync(viewModelScope)
             //productRepository.syncAll()
-            delay(2000)
+            delay(5000)
 
             val test = productRepository.observeProducts(null, null).first()
             Log.d("ROOM_TEST", "Produtos no banco: ${test.size}")
