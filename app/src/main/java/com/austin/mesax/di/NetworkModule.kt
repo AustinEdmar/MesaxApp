@@ -1,5 +1,7 @@
 package com.austin.mesax.di
 
+import android.content.Context
+
 import com.austin.mesax.data.api.AuthApi
 import com.austin.mesax.data.api.CoreUrl.BASE_URL
 import com.austin.mesax.data.api.OrdersApi
@@ -10,7 +12,9 @@ import com.austin.mesax.data.datastore.TokenManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -61,6 +65,8 @@ object NetworkModule {
     @Provides
     fun provideOrdersApi(retrofit: Retrofit): OrdersApi =
         retrofit.create(OrdersApi::class.java)
+
+
 
 
 }

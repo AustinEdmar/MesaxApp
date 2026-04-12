@@ -66,16 +66,6 @@ class TableViewModel @Inject constructor(
     }
 
 
-    fun openOrder(tableId: Int) {
-        viewModelScope.launch {
-            try {
-                val response = ordersRepository.getOrders(tableId)
-                Log.d("ORDER", response.toString())
-            } catch (e: Exception) {
-                Log.e("ORDER_ERROR", e.message.toString())
-            }
-        }
-    }
 
     fun syncTables() {
         viewModelScope.launch {

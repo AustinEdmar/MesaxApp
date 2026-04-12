@@ -20,6 +20,7 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,7 +38,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.austin.mesax.data.model.CartItem
-
+import com.austin.mesax.navigation.Screens
+import androidx.compose.ui.platform.LocalContext
+import com.austin.mesax.core.lib.SunmiPrinter
+import com.austin.mesax.data.model.ReceiptModel
+import com.austin.mesax.screens.home.components.CashPaymentDialog
+import com.austin.mesax.screens.home.components.PaymentDialog
+import com.austin.mesax.screens.home.components.PaymentMethod
 import com.austin.mesax.screens.home.components.ScreenScaffold
 import com.austin.mesax.screens.home.components.cart.OrderItemCard
 
@@ -53,11 +60,16 @@ import java.util.Locale
 @Composable
 fun CartScreen(
     tableId: Int,
+    //orderId: Int,
     onCartClick: () -> Unit,
+
     navController: NavHostController? = null,
     shiftViewModel: ShiftViewModel = hiltViewModel(),
     orderViewModel: OrderViewModel = hiltViewModel(),
-    cartViewModel: CartViewModel = hiltViewModel()
+
+    cartViewModel: CartViewModel = hiltViewModel(),
+    //printer: SunmiPrinter // 👈 adicionar
+
 ) {
     val shift     by shiftViewModel.shift.collectAsState()
 
@@ -65,10 +77,26 @@ fun CartScreen(
 
     val orderId by orderViewModel.orderId.collectAsState()
 
+    var showPaymentDialog by remember { mutableStateOf(false) }
+    var showCashDialog by remember { mutableStateOf(false) }
+
 
     val cartitems by cartViewModel.cartItems.collectAsStateWithLifecycle()
+    var cartLoaded by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val printer = remember { SunmiPrinter(context) }
 
+    // ✅ ADICIONE ISTO — chama connectPrinter quando o composable entra no ecrã
+// e disconnect quando sai, para libertar recursos
+    LaunchedEffect(Unit) {
+        printer.connectPrinter()
+    }
 
+    DisposableEffect(Unit) {
+        onDispose {
+            printer.disconnect()
+        }
+    }
 
 
     LaunchedEffect(tableId) {
@@ -82,9 +110,17 @@ fun CartScreen(
 
     }
 
-    LaunchedEffect(Unit) {
-        cartViewModel.navigationEvent.collect {
-            navController?.popBackStack()
+    // Navega quando a lista fica completamente vazia
+
+
+    LaunchedEffect(cartitems) {
+        when {
+            cartitems.isNotEmpty() -> cartLoaded = true
+            cartLoaded && cartitems.isEmpty() -> {
+                navController?.navigate(Screens.Home.route) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
         }
     }
 
@@ -92,25 +128,26 @@ fun CartScreen(
 
     var showSearchDialog by remember { mutableStateOf(false) }
 
-   
 
-        cartitems.mapNotNull { cartItemWithProduct ->
-            cartItemWithProduct.product?.let { product ->
-                CartItem(
-                    id = cartItemWithProduct.cartItem.id,
-                    name = product.name,
-                    stockQty = product.stock,
-                    unitPrice = product.price.toInt(),
-                    quantity = cartItemWithProduct.cartItem.quantity,
-                    imageUrl = product.imageUrl
-                )
-            }
-        }.toMutableStateList()
+
+    cartitems.mapNotNull { cartItemWithProduct ->
+        cartItemWithProduct.product?.let { product ->
+            CartItem(
+                id = cartItemWithProduct.cartItem.id,
+                name = product.name,
+                stockQty = product.stock,
+                iva = product.iva,
+                unitPrice = product.price.toInt(),
+                quantity = cartItemWithProduct.cartItem.quantity,
+                imageUrl = product.imageUrl
+            )
+        }
+    }.toMutableStateList()
 
 
     val subtotal = cartitems.sumOf { it.product?.price?.toInt()?.times(it.cartItem.quantity) ?: 0 }
-    val tax      = 2000
-    val total    = subtotal + tax
+    val tax      = cartitems.sumOf { it.product?.iva ?: 0 }
+    val total    = subtotal
 
     ScreenScaffold(
         amountTitle = "Caixa: ${shift?.userName ?: "Nenhum"}",
@@ -140,6 +177,7 @@ fun CartScreen(
                                 id        = cartItemWithProduct.cartItem.id,
                                 name      = product.name,
                                 stockQty  = product.stock,
+                                iva  = product.iva,
                                 unitPrice = product.price.toInt(),
                                 quantity  = cartItemWithProduct.cartItem.quantity,
                                 imageUrl  = product.imageUrl
@@ -151,9 +189,9 @@ fun CartScreen(
                             onDecrease = {
                                 cartViewModel.decreaseQuantity(cartItemWithProduct)
                             },
-                                    //decreaseEnabled = product.stock > 0,
+                            //decreaseEnabled = product.stock > 0,
                             decreaseEnabled = cartItemWithProduct.cartItem.quantity > 0,
-                                    increaseEnabled = product.stock > 1
+                            increaseEnabled = product.stock > 1
 
 
 
@@ -163,25 +201,6 @@ fun CartScreen(
                 }
             }
 
-            //LazyColumn(
-            //                modifier = Modifier.weight(1f),
-            //                contentPadding = PaddingValues()
-            //            ) {
-            //                items(items, key = { it.id }) { item ->
-            //                    OrderItemCard(
-            //                        item = item,
-            //                        onIncrease = {
-            //                            val idx = items.indexOf(item)
-            //                            if (idx >= 0) items[idx] = item.copy(quantity = item.quantity + 1)
-            //                        },
-            //                        onDecrease = {
-            //                            val idx = items.indexOf(item)
-            //                            if (idx >= 0 && item.quantity > 1)
-            //                                items[idx] = item.copy(quantity = item.quantity - 1)
-            //                        }
-            //                    )
-            //                }
-            //            }
 
             // ── Rodapé: subtotal, tax, total, botão pagar ─────────────────
             Column(
@@ -198,7 +217,7 @@ fun CartScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     SummaryRowCart("Subtotal", "${formatKzCart(subtotal.toDouble())} KZ", Color.Gray, Color.Black)
-                    SummaryRowCart("Tax. iva", "${formatKzCart(tax.toDouble())} KZ",      Color.Gray, Color.Gray)
+                    SummaryRowCart("Tax. iva", "${formatKzCart(tax.toDouble())} %",      Color.Gray, Color.Gray)
                 }
 
                 Divider(color = Color(0xFFEEEEEE), thickness = 1.dp)
@@ -219,8 +238,127 @@ fun CartScreen(
                     )
                 }
 
+                if (showPaymentDialog) {
+                    PaymentDialog(
+                        onDismiss = { showPaymentDialog = false },
+
+                        onSelect = { paymentMethod ->
+
+                            showPaymentDialog = false
+
+                            when(paymentMethod) {
+
+                                PaymentMethod.CASH -> {
+                                    showCashDialog = true
+                                }
+
+                                else -> {
+
+                                    val items = cartitems.mapNotNull { cartItemWithProduct ->
+                                        cartItemWithProduct.product?.let { product ->
+                                            CartItem(
+                                                id = cartItemWithProduct.cartItem.id,
+                                                name = product.name,
+                                                stockQty = product.stock,
+                                                iva = product.iva,
+                                                unitPrice = product.price.toInt(),
+                                                quantity = cartItemWithProduct.cartItem.quantity,
+                                                imageUrl = product.imageUrl
+                                            )
+                                        }
+                                    }
+
+                                    printer.printReceipt(
+                                        ReceiptModel(
+                                            items = items,
+                                            subtotal = subtotal,
+                                            tax = tax,
+                                            total = total,
+                                            tableId = tableId,
+                                            orderId = orderId,
+                                            paymentMethod = paymentMethod
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    )
+                }
+
+                if (showCashDialog) {
+                    CashPaymentDialog(
+                        total = total,
+                        onDismiss = { showCashDialog = false },
+
+                        onConfirm = { received, change ->
+
+                            showCashDialog = false
+
+                            val items = cartitems.mapNotNull { cartItemWithProduct ->
+                                cartItemWithProduct.product?.let { product ->
+                                    CartItem(
+                                        id = cartItemWithProduct.cartItem.id,
+                                        name = product.name,
+                                        stockQty = product.stock,
+                                        iva = product.iva,
+                                        unitPrice = product.price.toInt(),
+                                        quantity = cartItemWithProduct.cartItem.quantity,
+                                        imageUrl = product.imageUrl
+                                    )
+                                }
+                            }
+
+                            printer.printReceipt(
+                                ReceiptModel(
+                                    items = items,
+                                    subtotal = subtotal,
+                                    tax = tax,
+                                    total = total,
+                                    tableId = tableId,
+                                    orderId = orderId,
+                                    paymentMethod = PaymentMethod.CASH,
+                                    paidAmount = received,
+                                    change = change
+                                )
+                            )
+                        }
+                    )
+                }
                 Button(
-                    onClick = { /* TODO */ },
+//                    onClick = {
+//
+//                        val items = cartitems.mapNotNull { cartItemWithProduct ->
+//                            cartItemWithProduct.product?.let { product ->
+//                                CartItem(
+//                                    id = cartItemWithProduct.cartItem.id,
+//                                    name = product.name,
+//                                    stockQty = product.stock,
+//                                    iva = product.iva,
+//                                    unitPrice = product.price.toInt(),
+//                                    quantity = cartItemWithProduct.cartItem.quantity,
+//                                    imageUrl = product.imageUrl
+//                                )
+//                            }
+//                        }
+//
+//                        printer.printReceipt(
+//
+//                            ReceiptModel(
+//                                items = items,
+//                                subtotal = subtotal,
+//                                tax = tax,
+//                                total = total,
+//                                tableId = tableId,
+//                                orderId = orderId
+//                            )
+//                        )
+//                    },
+
+                    onClick = {
+                        showPaymentDialog = true
+                    },
+
+
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp)

@@ -17,7 +17,7 @@ interface CartDao {
     @Transaction
     @Query("""
     SELECT * FROM cart_items
-    WHERE orderId = :orderId
+    WHERE orderId = :orderId AND quantity > 0
 """)
     fun getCart(orderId: Int?): Flow<List<CartItemWithProduct>>
 
@@ -129,6 +129,8 @@ WHERE id = :itemId
 """)
     suspend fun decreaseQuantity(itemId: Int)
 
+
+
     @Transaction
     suspend fun addToCartTransaction(orderId: Int, product: ProductEntity) {
 
@@ -167,14 +169,23 @@ WHERE id = :itemId
         increaseQuantity(item.orderId, item.productId)
     }
 
+//    @Transaction
+//    suspend fun decreaseQuantityTransaction(item: CartItemEntity) {
+//
+//        incrementStock(item.productId)
+//
+//        decreaseQuantity(item.id)
+//
+//        deleteProductIfNotInCart(item.productId)
+//    }
+
     @Transaction
     suspend fun decreaseQuantityTransaction(item: CartItemEntity) {
-
         incrementStock(item.productId)
-
         decreaseQuantity(item.id)
-
-        deleteProductIfNotInCart(item.productId)
+        
+        // Removido o delete imediato. 
+        // Agora o syncCart é responsável por deletar quando a quantidade chegar a 0 E o delta for sincronizado.
     }
 
     @Query("""
@@ -203,6 +214,16 @@ WHERE id = :itemId
 """)
     suspend fun deleteProductIfNotInCart(productId: Int)
 
+
+    @Query("""
+    DELETE FROM orders
+    WHERE id = :orderId
+    AND NOT EXISTS (
+        SELECT 1 FROM cart_items
+        WHERE orderId = :orderId
+    )
+""")
+    suspend fun deleteOrderIfNotInCart(orderId: Int)
 
 
 }

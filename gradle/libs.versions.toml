@@ -16,10 +16,12 @@ uiText = "1.10.2"
 foundationLayout = "1.10.2"
 hiltNavigationCompose = "1.2.0"
 hiltV = "2.56.2"
+work = "2.9.0"
+hiltWork = "1.2.0"
 ui = "1.10.2"
 roomV = "2.7.2"
 transportRuntime = "4.0.0"
-workRuntimeKtx = "2.11.1"
+printerlibrary = "1.0.23"
 
 
 [libraries]
@@ -44,19 +46,19 @@ androidx-compose-ui-text = { group = "androidx.compose.ui", name = "ui-text", ve
 androidx-compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "foundationLayout" }
 
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hiltV" }
-
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hiltV" }
-
 hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "ui" }
+
+androidx-work-runtime = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
+hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltWork" }
+androidx-hilt-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hiltWork" }
 
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "roomV" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "roomV" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "roomV" }
 transport-runtime = { group = "com.google.android.datatransport", name = "transport-runtime", version.ref = "transportRuntime" }
-androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workRuntimeKtx" }
-
-
+printerlibrary = { module = "com.sunmi:printerlibrary", version.ref = "printerlibrary" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

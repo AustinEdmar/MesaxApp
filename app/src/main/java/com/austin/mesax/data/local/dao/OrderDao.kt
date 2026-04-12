@@ -25,6 +25,9 @@ interface OrderDao {
     @Query("DELETE FROM orders WHERE id IN (:ids)")
     suspend fun deleteOrdersByIds(ids: List<Int>)
 
+    @Query("DELETE FROM orders WHERE id = :id")
+    suspend fun deleteOrderById(id: Int)
+
     @Query("DELETE FROM orders")
     suspend fun clearOrders()
 

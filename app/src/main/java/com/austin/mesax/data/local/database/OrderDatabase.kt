@@ -11,7 +11,7 @@ import com.austin.mesax.data.local.entity.ProductEntity
 
 @Database(
     entities = [OrderEntity::class, CartItemEntity::class, ProductEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class OrderDatabase : RoomDatabase() {

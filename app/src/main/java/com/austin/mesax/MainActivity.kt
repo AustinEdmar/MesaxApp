@@ -5,12 +5,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.LaunchedEffect
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.austin.mesax.core.lib.SunmiPrinter
 import com.austin.mesax.navigation.Screens
 import com.austin.mesax.screens.MainScreen
 import com.austin.mesax.screens.auth.LoginScreen
@@ -22,19 +25,41 @@ import com.austin.mesax.screens.home.ProductsScreen
 
 import com.austin.mesax.screens.profile.ProfileScreen
 
+
 import com.austin.mesax.ui.theme.ShopEasyTheme
+import com.austin.mesax.viewmodel.CartViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+   //0
+    private lateinit var printer: SunmiPrinter
+
     override fun onCreate(savedInstanceState: Bundle?) {
 
         super.onCreate(savedInstanceState)
+
+        // (1) cria instância
+        printer = SunmiPrinter(this)
+
+        // (2) conecta impressora
+        printer.connectPrinter()
         installSplashScreen()
         enableEdgeToEdge()
+
         setContent {
             ShopEasyTheme(){
+
                 val navController = rememberNavController()
+                val cartViewModel: CartViewModel = hiltViewModel()
+
+                // 🔥 Sync ao abrir app
+//                LaunchedEffect(Unit) {
+//
+//                    cartViewModel.syncOnAppStart()
+//
+//                }
 
                 NavHost(
                     navController = navController,
@@ -102,7 +127,26 @@ class MainActivity : ComponentActivity() {
                             },
                             onCartClick = {
                              //   navController.navigate(Screens.Cart.route)
-                            }
+
+                            },
+                            // (3) PASSA A FUNÇÃO PARA O COMPOSABLE
+                            onPrintClick = {
+                                printer.printTest()
+
+                            },
+
+                            printBarcode = {
+                                printer.printBarcode("123456789012")
+                            },
+
+//                            printReceipt = {
+//                                printer.printReceipt()
+//                            },
+
+
+
+                        isConnected = printer.isConnected.value
+
 
                         )
                     }
@@ -117,12 +161,15 @@ class MainActivity : ComponentActivity() {
                         )
                     ) { backStackEntry ->
                         val tableId = backStackEntry.arguments?.getInt("tableId") ?: 0
+
                         CartScreen(
                             tableId = tableId,
                             onCartClick = {
                                 // Stay on Cart or navigate back
                             },
-                            navController = navController
+                            navController = navController,
+
+                            //printer = printer
                         )
                     }
 
@@ -135,4 +182,11 @@ class MainActivity : ComponentActivity() {
             }
     }
 }
+
+    override fun onDestroy() {
+        super.onDestroy()
+
+        // (4) MUITO IMPORTANTE
+        printer.disconnect()
+    }
 }

@@ -33,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.austin.mesax.data.model.UiStates.AuthUiState
@@ -55,12 +56,16 @@ fun ProfileScreen(
     AuthviewModel: AuthViewModel = hiltViewModel(),
     HomeViewModel: HomeViewModel = hiltViewModel(),
     shiftViewModel: ShiftViewModel = hiltViewModel(),
-
+    onPrintClick: () -> Unit,
+    printBarcode: () -> Unit,
+   // printReceipt: () -> Unit,
     onProfileClick: () -> Unit,
     onCartClick: () -> Unit,
+    isConnected: Boolean
 ) {
     val uiState = AuthviewModel.uiState
     val shift by shiftViewModel.shift.collectAsState()
+    val connectionStatus = if (isConnected) "Conectado" else "Desconectado"
 
     // navegação reativa ao estado
     LaunchedEffect(uiState) {
@@ -169,6 +174,47 @@ fun ProfileScreen(
                     Text("Sair")
                 }
             }
+
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    // (5) chama impressão
+                    onPrintClick()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Imprimir Teste")
+            }
+
+            Button(
+                onClick = {
+                    // (5) chama impressão
+                    printBarcode()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Imprimir barcode")
+            }
+
+
+
+
+
+
+
+
+
+
+            Text(
+                text = "Status: $connectionStatus",
+                fontSize = 14.sp,
+                color = if (isConnected)
+                    MaterialTheme.colorScheme.primary
+                else
+                    MaterialTheme.colorScheme.error
+            )
 
 
 

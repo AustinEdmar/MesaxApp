@@ -1,150 +1,134 @@
 package com.austin.mesax.data.repository
 
+import android.util.Log
 import com.austin.mesax.data.api.OrdersApi
 import com.austin.mesax.data.local.dao.CartDao
-import com.austin.mesax.data.local.dao.OrderDao
 import com.austin.mesax.data.local.entity.CartItemEntity
 import com.austin.mesax.data.local.entity.ProductEntity
-import com.austin.mesax.data.local.mapper.toEntity
 import com.austin.mesax.data.model.OrderResquest.AddItemRequest
+import com.austin.mesax.worker.CartSyncScheduler
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class CartRepository @Inject constructor (
     private val api: OrdersApi,
-
-    private val cartDao: CartDao
+    private val cartDao: CartDao,
+    private val scheduler: CartSyncScheduler
 ){
-
     private val syncMutex = Mutex()
-    private val cartMutex = Mutex()
 
-    private val _navigationEvent = MutableSharedFlow<Unit>()
+    private val _navigationEvent = MutableSharedFlow<Unit>(
+        replay = 1,
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
     val navigationEvent = _navigationEvent.asSharedFlow()
 
-
-
     suspend fun addToCart(orderId: Int, product: ProductEntity) {
-        cartMutex.withLock {
-            cartDao.addToCartTransaction(orderId, product)
-        }
+        cartDao.addToCartTransaction(orderId, product)
+        scheduler.schedule()
     }
 
-
-    suspend fun increaseQuantity(item: CartItemEntity){
-        cartMutex.withLock {
-            cartDao.increaseQuantityTransaction(item)
-        }
+    suspend fun increaseQuantity(item: CartItemEntity) {
+        cartDao.increaseQuantityTransaction(item)
+        scheduler.schedule()
     }
 
     suspend fun decreaseQuantity(item: CartItemEntity) {
-        cartMutex.withLock {
-            cartDao.decreaseQuantityTransaction(item)
-        }
+        cartDao.decreaseQuantityTransaction(item)
+        scheduler.schedule()
     }
 
-
-
-
-
-
-    // Função simples para chamar API
-
-
-
-    suspend fun syncAddItem(): String? = syncMutex.withLock {
-
-        try {
-
+    suspend fun syncCart(): Boolean = syncMutex.withLock {
+        Log.d("REPO", "Iniciando syncCart")
+        var hasError = false
+        
+        while (true) {
             val items = cartDao.getPendingItems()
+            if (items.isEmpty()) break
+            Log.d("REPO", "Items pendentes: ${items.size}")
 
-            items.forEach { item ->
 
-                when {
-
-                    // 🔼 INCREMENTAR
-                    item.delta > 0 -> {
-
-                        val response = api.addItem(
-                            item.orderId,
-                            AddItemRequest(
-                                product_id = item.productId,
-                                quantity = item.delta
-                            )
-                        )
-
-                        if (!response.isSuccessful) {
-                            return response.errorBody()?.string()
-                        }
-                    }
-
-                    // 🔽 DECREMENTAR
-                   item.delta < 0 -> {
-
-                        repeat(kotlin.math.abs(item.delta)) {
-
-                            val response = api.decrementItem(
-                                item.orderId,
-                                AddItemRequest(
-                                    product_id = item.productId,
-                                    quantity = 1
-                                )
-                            )
-
-                            if (!response.isSuccessful) {
-                                return response.errorBody()?.string()
-                            }
-                        }
-                    }
+            for (item in items) {
+                val deltaToSync = item.delta
+                if (deltaToSync == 0) {
+                    cartDao.update(item.copy(pendingSync = false))
+                    continue
                 }
 
-                // 🔥 pega item atualizado do banco
-                val current = cartDao.getItem(
-                    orderId = item.orderId,
-                    productId = item.productId
-                ) ?: return@forEach
+                try {
+                    // 1. Zera o delta localmente ANTES de enviar para a API (Otimismo Preventivo)
+                    // Isso evita duplicidade se o Worker sofrer um retry inesperado ou crash.
+                    cartDao.update(item.copy(delta = 0, pendingSync = false))
 
-                // 🔥 limpa depois de sincronizar
-                val updated = current.copy(
-                    pendingSync = false,
-                    delta = 0
-                )
+                    val response = try {
+                        if (deltaToSync > 0) {
+                            api.addItem(
+                                item.orderId,
+                                AddItemRequest(item.productId, deltaToSync)
+                            )
+                        } else {
+                            api.decrementItem(
+                                item.orderId,
+                                AddItemRequest(item.productId, kotlin.math.abs(deltaToSync))
+                            )
+                        }
+                    } catch (e: Exception) {
+                        Log.e("REPO", "Erro na chamada de API", e)
+                        // 2. Erro de rede/conexão: Devolve o delta para tentar novamente no futuro
+                        rollbackDelta(item, deltaToSync)
+                        throw e
+                    }
+                    Log.d("REPO", "Resposta da API: ${response.code()}")
 
-                cartDao.update(updated)
-
-                // 🔥 deleta apenas depois do sync
-                if (updated.quantity == 0) {
-                    cartDao.deleteItem(updated.id,
-                        updated.orderId)
-
-                   // cartDao.deleteProduct(updated.productId)
-                    cartDao.deleteProductIfNotInCart(updated.productId)
-
-
-                    // 🔥 verifica se carrinho ficou vazio
-                    val remainingItems = cartDao.getAllItems()
-                    //cartDao.deleteProduct(updated.productId)
-
-                    if (remainingItems.isEmpty()) {
-                        _navigationEvent.emit(Unit)
+                    if (!response.isSuccessful) {
+                        Log.e("SYNC", "API Error: ${response.code()} - ${response.message()}")
+                        // 3. Erro na API (Ex: estoque insuficiente no server): Devolve o delta
+                        rollbackDelta(item, deltaToSync)
+                        hasError = true
+                        continue
                     }
 
+                    // 4. Sucesso: Limpeza final
+                    withContext(NonCancellable) {
+                        val current = cartDao.getItem(item.orderId, item.productId) ?: return@withContext
+                        if (current.quantity <= 0 && current.delta == 0) {
+                            cartDao.deleteItem(current.id, current.orderId)
+                            cartDao.deleteProductIfNotInCart(current.productId)
+                            cartDao.deleteOrderIfNotInCart(current.orderId)
+                        }
+                    }
 
+                } catch (e: Exception) {
+                    Log.e("SYNC", "Falha crítica ao sincronizar item ${item.id}", e)
+                    hasError = true
                 }
             }
-
-        } catch (e: Exception) {
-            return e.message
+            if (hasError) break
         }
 
-        return null
+        return !hasError
+    }
+
+    private suspend fun rollbackDelta(item: CartItemEntity, delta: Int) {
+        val current = cartDao.getItem(item.orderId, item.productId)
+        if (current != null) {
+            cartDao.update(current.copy(
+                delta = current.delta + delta,
+                pendingSync = true
+            ))
+        } else {
+            // Se o item sumiu (raro), recria com o delta pendente
+            cartDao.insert(item.copy(id = 0, delta = delta, pendingSync = true))
+        }
     }
 
     fun observeCart(orderId: Int?) =
-           cartDao.getCart(orderId)
-
+        cartDao.getCart(orderId)
 }

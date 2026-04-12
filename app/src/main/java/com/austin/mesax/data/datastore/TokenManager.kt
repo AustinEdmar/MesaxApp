@@ -1,6 +1,7 @@
 package com.austin.mesax.data.datastore
 
 import android.content.Context
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -34,6 +35,9 @@ class TokenManager @Inject constructor(
     suspend fun saveToken(token: String) {
         context.dataStore.edit { prefs ->
             prefs[TOKEN] = token
+
+            Log.d("TokenManager", "Token salvo: $token")
+
         }
     }
 

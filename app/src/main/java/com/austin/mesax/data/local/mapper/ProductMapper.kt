@@ -9,6 +9,7 @@ fun ProductDTO.toEntity(): ProductEntity {
         name = name,
         description = description,
         price = price,
+        iva = iva,
         stock = stock,
         imageUrl = image_url,
         categoryId = categoryDTO.id

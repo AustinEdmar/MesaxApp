@@ -5,6 +5,7 @@ data class CartItem(
     val name: String,
     val stockLabel: String = "Stock:",
     val stockQty: Int,
+    val iva: Int?,
     val unitPrice: Int,
     val quantity: Int = 1,
     val imageUrl: String?

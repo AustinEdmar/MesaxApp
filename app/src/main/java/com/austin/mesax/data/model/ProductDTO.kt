@@ -7,6 +7,7 @@ data class ProductDTO(
     val name: String,
     val description: String?,
     val price: Double,
+    val iva: Int, // 👈 usar Int
     val stock: Int,
     val image_url: String?,
     @SerializedName("category")

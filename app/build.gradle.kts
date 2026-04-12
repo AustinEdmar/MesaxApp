@@ -13,9 +13,7 @@ hilt{
 
 android {
     namespace = "com.austin.mesax"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.austin.mesax"
@@ -84,15 +82,29 @@ dependencies {
     implementation(libs.hilt.android)
     implementation(libs.androidx.ui)
     implementation(libs.transport.runtime)
-    implementation(libs.androidx.work.runtime.ktx)
+
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
 
+    // WorkManager
+    //implementation(libs.androidx.work.runtime)
+
+// Hilt Worker
+    implementation(libs.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 
     //ROOM
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
+
+
+    //Sunmi SDK
+    implementation(libs.printerlibrary)
+
+
+
 
     implementation(libs.androidx.espresso.core)
     implementation(libs.androidx.compose.foundation)

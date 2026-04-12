@@ -79,6 +79,10 @@ import com.austin.mesax.data.model.CartItem
                     Text("Preço total:  ", fontSize = 12.sp, color = Color.Gray)
                     Text("${item.unitPrice * item.quantity} KZ", fontSize = 13.sp, color = Color.Black, fontWeight = FontWeight.Bold)
                 }
+                Row {
+                    Text("Iva ao produto: ", fontSize = 12.sp, color = Color.Gray)
+                    Text("${item.iva} %", fontSize = 12.sp, color = Color.Black, fontWeight = FontWeight.Bold)
+                }
             }
             Spacer(modifier = Modifier.width(8.dp))
 
