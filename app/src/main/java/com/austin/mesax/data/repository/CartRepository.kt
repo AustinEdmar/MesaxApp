@@ -57,6 +57,7 @@ class CartRepository @Inject constructor (
 
             for (item in items) {
                 val deltaToSync = item.delta
+                val snapshotVersion = item.syncVersion
                 if (deltaToSync == 0) {
                     cartDao.update(item.copy(pendingSync = false))
                     continue
@@ -82,31 +83,29 @@ class CartRepository @Inject constructor (
                     } catch (e: Exception) {
                         Log.e("REPO", "Erro na chamada de API", e)
                         // 2. Erro de rede/conexão: Devolve o delta para tentar novamente no futuro
-                        rollbackDelta(item, deltaToSync)
+                        rollbackDelta(item, deltaToSync, snapshotVersion)  // ← e aqui
                         throw e
                     }
                     Log.d("REPO", "Resposta da API: ${response.code()}")
 
                     if (!response.isSuccessful) {
-                        Log.e("SYNC", "API Error: ${response.code()} - ${response.message()}")
-                        // 3. Erro na API (Ex: estoque insuficiente no server): Devolve o delta
-                        rollbackDelta(item, deltaToSync)
-                        hasError = true
-                        continue
+                        val raw = response.errorBody()?.string()
+                        Log.e("SYNC", "Error body raw: $raw")
                     }
 
                     // 4. Sucesso: Limpeza final
+                    // Delete seguro — só deleta se versão não mudou
                     withContext(NonCancellable) {
                         val current = cartDao.getItem(item.orderId, item.productId) ?: return@withContext
-                        if (current.quantity <= 0 && current.delta == 0) {
+                        if (current.quantity <= 0
+                            && current.delta == 0
+                            && current.syncVersion == snapshotVersion) {  // ← guarda extra
                             cartDao.deleteItem(current.id, current.orderId)
                             cartDao.deleteProductIfNotInCart(current.productId)
                             cartDao.deleteOrderIfNotInCart(current.orderId)
                         }
                     }
-
                 } catch (e: Exception) {
-                    Log.e("SYNC", "Falha crítica ao sincronizar item ${item.id}", e)
                     hasError = true
                 }
             }
@@ -116,18 +115,41 @@ class CartRepository @Inject constructor (
         return !hasError
     }
 
-    private suspend fun rollbackDelta(item: CartItemEntity, delta: Int) {
-        val current = cartDao.getItem(item.orderId, item.productId)
-        if (current != null) {
+    private suspend fun rollbackDelta(item: CartItemEntity, delta: Int, snapshotVersion: Int) {
+        val current = cartDao.getItem(item.orderId, item.productId) ?: run {
+            cartDao.insert(item.copy(id = 0, delta = delta, pendingSync = true))
+            return
+        }
+
+        if (current.syncVersion == snapshotVersion) {
+            // Ninguém tocou no item durante o sync — rollback simples
             cartDao.update(current.copy(
                 delta = current.delta + delta,
                 pendingSync = true
             ))
         } else {
-            // Se o item sumiu (raro), recria com o delta pendente
-            cartDao.insert(item.copy(id = 0, delta = delta, pendingSync = true))
+            // Utilizador modificou o item durante o sync
+            // Apenas re-adiciona o delta ao pendente existente, sem sobrescrever
+            cartDao.update(current.copy(
+                delta = current.delta + delta,
+                pendingSync = true
+                // syncVersion NÃO muda — a versão do utilizador prevalece
+            ))
         }
     }
+
+//    private suspend fun rollbackDelta(item: CartItemEntity, delta: Int) {
+//        val current = cartDao.getItem(item.orderId, item.productId)
+//        if (current != null) {
+//            cartDao.update(current.copy(
+//                delta = current.delta + delta,
+//                pendingSync = true
+//            ))
+//        } else {
+//            // Se o item sumiu (raro), recria com o delta pendente
+//            cartDao.insert(item.copy(id = 0, delta = delta, pendingSync = true))
+//        }
+//    }
 
     fun observeCart(orderId: Int?) =
         cartDao.getCart(orderId)

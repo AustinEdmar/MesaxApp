@@ -28,5 +28,6 @@ data class CartItemEntity(
     val quantity: Int = 1,
     val delta: Int = 0,
 
-    val pendingSync: Boolean = true
+    val pendingSync: Boolean = true,
+    val syncVersion: Int = 0  // ← novo campo
 )

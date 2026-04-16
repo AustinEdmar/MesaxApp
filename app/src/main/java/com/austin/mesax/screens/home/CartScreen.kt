@@ -1,11 +1,13 @@
 package com.austin.mesax.screens.home
 
+import android.media.SoundPool
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-
+import com.austin.mesax.R
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -84,7 +86,8 @@ fun CartScreen(
     val cartitems by cartViewModel.cartItems.collectAsStateWithLifecycle()
     var cartLoaded by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val printer = remember { SunmiPrinter(context) }
+    // Use applicationContext to avoid resource loading issues during Activity recreation or "Apply Changes"
+    val printer = remember { SunmiPrinter(context.applicationContext) }
 
     // ✅ ADICIONE ISTO — chama connectPrinter quando o composable entra no ecrã
 // e disconnect quando sai, para libertar recursos
@@ -104,12 +107,10 @@ fun CartScreen(
     }
 
     // 🔑 começa a observar o carrinho dessa order
+
     LaunchedEffect(orderId) {
-
-        cartViewModel.observeCart(orderId)
-
+        cartViewModel.setOrderId(orderId)
     }
-
     // Navega quando a lista fica completamente vazia
 
 
@@ -125,6 +126,14 @@ fun CartScreen(
     }
 
 
+//    sound
+    val soundPool = remember {
+        SoundPool.Builder().setMaxStreams(1).build()
+    }
+
+    val soundId = remember {
+        soundPool.load(context, R.raw.beep, 1)
+    }
 
     var showSearchDialog by remember { mutableStateOf(false) }
 
@@ -183,10 +192,17 @@ fun CartScreen(
                                 imageUrl  = product.imageUrl
                             ),
                             onIncrease = {
+                             //   soundPool.play(soundId, 1f, 1f, 0, 0, 1f) // 🔊 som
 
+
+                                Log.d("CLICK", "clicou no produto ${product.id}")
                                 cartViewModel.increaseQuantity(cartItemWithProduct)
                             },
                             onDecrease = {
+                                soundPool.play(soundId, 1f, 1f, 0, 0, 1f) // 🔊 som
+
+
+                                Log.d("CLICK", "clicou no produto ${product.id}")
                                 cartViewModel.decreaseQuantity(cartItemWithProduct)
                             },
                             //decreaseEnabled = product.stock > 0,

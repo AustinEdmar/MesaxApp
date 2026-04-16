@@ -1,8 +1,16 @@
 package com.austin.mesax.screens.home
 
+import android.content.Context
+import android.media.SoundPool
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import com.austin.mesax.R
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
@@ -86,10 +94,14 @@ fun ProductsScreen(
         }
 
     // 🔑 começa a observar o carrinho dessa order
+//    LaunchedEffect(orderId) {
+//
+//        cartViewModel.observeCart(orderId)
+//
+//    }
+
     LaunchedEffect(orderId) {
-
-        cartViewModel.observeCart(orderId)
-
+        cartViewModel.setOrderId(orderId)
     }
 
     LaunchedEffect(error) {
@@ -101,10 +113,13 @@ fun ProductsScreen(
         }
 
     }
+    val soundPool = remember {
+        SoundPool.Builder().setMaxStreams(1).build()
+    }
 
-
-
-
+    val soundId = remember {
+        soundPool.load(context, R.raw.beep, 1)
+    }
 
     ScreenScaffold(
         amountTitle = "Caixa: ${shift?.userName ?: "Nenhum"}",
@@ -171,7 +186,10 @@ fun ProductsScreen(
                     ProductItemCard(
                         product = product,
                         onClick = {
+                            soundPool.play(soundId, 1f, 1f, 0, 0, 1f) // 🔊 som
 
+
+                            Log.d("CLICK", "clicou no produto ${product.id}")
                             if (product.stock <= 0) {
                                 Toast.makeText(
                                     context,

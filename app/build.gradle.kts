@@ -18,7 +18,7 @@ android {
     defaultConfig {
         applicationId = "com.austin.mesax"
         minSdk = 25
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -70,13 +70,13 @@ dependencies {
 
     implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-    implementation("com.google.code.gson:gson:2.10.1")
     //retrofit
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-moshi:2.9.0")
 
     implementation("com.squareup.moshi:moshi-kotlin:1.15.0")
-
+    // build.gradle
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
     // Hilt
     implementation(libs.hilt.android)

@@ -33,6 +33,7 @@ class OrdersRepository @Inject constructor (
 
     fun observeOrders(tableId: Int) = orderDao.observeOrders(tableId)
 
+
     suspend fun syncOrders() {
 
         try {
@@ -57,64 +58,6 @@ class OrdersRepository @Inject constructor (
     }
 
     // 2- CARTS
-
-
-
-
-
-    //suspend fun deleteCartItem(item: CartItemEntity) {
-    //        cartDao.deleteItem(item.id)
-    //
-    //        syncAddItem()
-    //    }
-
-
-    // Função simples para chamar API
-
-
-    //suspend fun syncAddItem(): String? = syncMutex.withLock {
-    //
-    //        try {
-    //
-    //            val items = cartDao.getPendingItems()
-    //
-    //            items.forEach { item ->
-    //
-    //                val response = api.addItem(
-    //                    item.orderId,
-    //                    AddItemRequest(
-    //                        product_id = item.productId,
-    //                        quantity = item.quantity
-    //                    )
-    //                )
-    //
-    //                if (response.isSuccessful) {
-    //
-    //                    val updated = item.copy(pendingSync = false)
-    //                    cartDao.update(updated)
-    //
-    //                } else {
-    //
-    //                    return response.errorBody()?.string()
-    //                }
-    //            }
-    //
-    //        } catch (e: Exception) {
-    //            return e.message
-    //        }
-    //
-    //        return null
-    //    }
-    //
-    //    fun observeCart(orderId: Int?) =
-    //           cartDao.getCart(orderId)
-    //
-    //
-    //    suspend fun updateCartItem(item: CartItemEntity) {
-    //        cartDao.update(item)
-    //    }
-
-
 
 
 

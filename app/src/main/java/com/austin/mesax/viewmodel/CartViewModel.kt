@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -31,77 +33,52 @@ import kotlinx.coroutines.launch
 //
 @HiltViewModel
 class CartViewModel @Inject constructor(
-    //  private val networkMonitor: NetworkMonitor,
-    private val cartRepository: CartRepository,
+    private val cartRepository: CartRepository
+) : ViewModel() {
 
+    private val orderIdFlow = MutableStateFlow<Int?>(null)
 
-    ) : ViewModel() {
+    // 👇 CART 100% REATIVO (SEM JOBS, SEM OBSERVE MANUAL)
+    val cartItems = orderIdFlow
+        .filterNotNull()
+        .distinctUntilChanged()
+        .flatMapLatest { orderId ->
+            cartRepository.observeCart(orderId)
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList()
+        )
 
-    //val navigationEvent = cartRepository.navigationEvent
-    private val _cartItems = MutableStateFlow<List<CartItemWithProduct>>(emptyList())
-    val cartItems = _cartItems.asStateFlow()
-
-
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage = _errorMessage.asStateFlow()
-
+    // contador automático
     val cartCount = cartItems
         .map { list -> list.sumOf { it.cartItem.quantity } }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            0
+        )
 
-
-    init {
-
-
+    fun setOrderId(orderId: Int?) {
+        orderIdFlow.value = orderId
     }
 
-
-
-
-
-    //cart
     fun addProduct(product: ProductEntity, orderId: Int) {
-
         viewModelScope.launch {
-
             cartRepository.addToCart(orderId, product)
-            Log.d("CART", orderId.toString())
-
         }
     }
-
-
-
-
-    fun observeCart(orderId: Int?) {
-        viewModelScope.launch {
-            cartRepository.observeCart(orderId)
-                .distinctUntilChanged()
-                .collect {
-                    _cartItems.value = it
-                }
-        }
-    }
-
 
     fun increaseQuantity(item: CartItemWithProduct) {
         viewModelScope.launch {
             cartRepository.increaseQuantity(item.cartItem)
-
         }
     }
 
     fun decreaseQuantity(item: CartItemWithProduct) {
         viewModelScope.launch {
             cartRepository.decreaseQuantity(item.cartItem)
-
+        }
     }
-
-
-
-
-
-
 }
-}
-

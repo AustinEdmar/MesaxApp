@@ -447,7 +447,7 @@ class SunmiPrinter(private val context: Context) {
             // (32.1) Só processa a imagem se um resId foi fornecido (não é null)
             logoResId?.let { resId ->
                 // (32.2) Acede aos recursos do contexto para poder ler o drawable
-                val resources = context.resources
+                val resources = context.resources ?:  return@let // Guard
                 // (32.3) Descodifica o drawable em Bitmap para poder imprimir como imagem
                 val logoBitmap = BitmapFactory.decodeResource(resources, resId)
                 logoBitmap?.let {

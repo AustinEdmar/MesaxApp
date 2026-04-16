@@ -16,6 +16,8 @@ interface OrderDao {
     @Query("SELECT * FROM orders WHERE table_id = :tableId")
     fun observeOrders(tableId: Int): Flow<List<OrderEntity>>
 
+
+
     @Query("SELECT * FROM orders")
     suspend fun getOrdersOnce(): List<OrderEntity>
 

@@ -5,6 +5,7 @@ import com.austin.mesax.data.model.OrderResquest.OpenOrderRequest
 import com.austin.mesax.data.model.OrdersDTO
 import com.austin.mesax.data.responses.OrderResponses.OrderActionResponse
 import com.austin.mesax.data.responses.OrderResponses.OrderResponse
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -30,7 +31,7 @@ interface OrdersApi {
     suspend fun addItem(
         @Path("orderId") orderId: Int,
         @Body request: AddItemRequest
-    ): Response<OrderActionResponse>
+    ): Response<ResponseBody>
 
 
 
@@ -38,6 +39,6 @@ interface OrdersApi {
     suspend fun decrementItem(
         @Path("orderId") orderId: Int,
         @Body request: AddItemRequest
-    ): Response<OrderActionResponse>
+    ): Response<ResponseBody>
 
 }

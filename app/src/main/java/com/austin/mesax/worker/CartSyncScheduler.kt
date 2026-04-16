@@ -23,7 +23,8 @@ class CartSyncScheduler @Inject constructor(
 
         val request = OneTimeWorkRequestBuilder<CartSyncWorker>()
             .setConstraints(constraints)
-            .setInitialDelay(3, TimeUnit.SECONDS) // Aguarda acumular operações
+           // .setInitialDelay(3, TimeUnit.SECONDS) // Aguarda acumular operações
+            .setInitialDelay(500, TimeUnit.MILLISECONDS)
             .setBackoffCriteria(
                 BackoffPolicy.EXPONENTIAL,
                 10,
@@ -34,7 +35,9 @@ class CartSyncScheduler @Inject constructor(
         WorkManager.getInstance(context)
             .enqueueUniqueWork(
                 "cart_sync",
-                ExistingWorkPolicy.KEEP, // ✅ Mantém o worker atual se já estiver rodando
+              //  ExistingWorkPolicy.KEEP, // ✅ Mantém o worker atual se já estiver rodando
+                //ExistingWorkPolicy.REPLACE, // 🔥 Trocar aqui
+                ExistingWorkPolicy.APPEND_OR_REPLACE,
                 request
             )
     }

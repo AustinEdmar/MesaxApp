@@ -1,6 +1,7 @@
 package com.austin.mesax.screens.auth
 
 
+import android.util.Log
 import android.util.Patterns
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -115,9 +116,10 @@ fun LoginScreen(
     val isEmailValid = Patterns.EMAIL_ADDRESS.matcher(email).matches()
     val isPasswordValid = password.length >= 6
 
+    // FIX: derivedStateOf deve ler o estado (email, password) diretamente no bloco
     val isFormValid by remember {
         derivedStateOf {
-            isEmailValid && isPasswordValid
+            Patterns.EMAIL_ADDRESS.matcher(email).matches() && password.length >= 6
         }
     }
 
@@ -471,6 +473,7 @@ fun LoginScreen(
                                 focusManager.clearFocus()
                                 if (isFormValid) {
                                     viewModel.login(email, password)
+
                                 }
                             }
                         )
@@ -536,6 +539,7 @@ fun LoginScreen(
                         ),
                         shape = RoundedCornerShape(28.dp)
                     ) {
+
                         when (state) {
                             is LoginUiState.Loading -> {
                                 CircularProgressIndicator(
@@ -570,42 +574,7 @@ fun LoginScreen(
                         }
                     }
 
-                    // Error Message
-                    //AnimatedVisibility(
-                    //                        visible = state is LoginUiState.Error,
-                    //                        enter = slideInVertically(initialOffsetY = { -20 }) + fadeIn(),
-                    //                        exit = slideOutVertically(targetOffsetY = { -20 }) + fadeOut()
-                    //                    ) {
-                    //                        if (state is LoginUiState.Error) {
-                    //                            Spacer(modifier = Modifier.height(16.dp))
-                    //                            Card(
-                    //                                modifier = Modifier.fillMaxWidth(),
-                    //                                colors = CardDefaults.cardColors(
-                    //                                    containerColor = Color(0xFFFF6B6B).copy(alpha = 0.2f)
-                    //                                ),
-                    //                                shape = RoundedCornerShape(12.dp)
-                    //                            ) {
-                    //                                Row(
-                    //                                    modifier = Modifier.padding(12.dp),
-                    //                                    verticalAlignment = Alignment.CenterVertically
-                    //                                ) {
-                    //                                    Icon(
-                    //                                        imageVector = Icons.Default.Error,
-                    //                                        contentDescription = null,
-                    //                                        tint = Color.White,
-                    //                                        modifier = Modifier.size(20.dp)
-                    //                                    )
-                    //                                    Spacer(modifier = Modifier.width(8.dp))
-                    //                                    Text(
-                    //                                        text = state.message,
-                    //                                        color = Color.White,
-                    //                                        fontSize = 14.sp,
-                    //                                        fontWeight = FontWeight.Medium
-                    //                                    )
-                    //                                }
-                    //                            }
-                    //                        }
-                    //                    }
+
                 }
             }
         }

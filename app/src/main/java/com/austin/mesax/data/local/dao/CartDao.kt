@@ -113,7 +113,8 @@ UPDATE cart_items
 SET 
     quantity = quantity + 1,
     delta = delta + 1,
-    pendingSync = 1
+    pendingSync = 1,
+     syncVersion = syncVersion + 1   -- ← adicionar aqui
 WHERE orderId = :orderId AND productId = :productId
 """)
     suspend fun increaseQuantity(orderId: Int, productId: Int): Int
@@ -124,7 +125,8 @@ UPDATE cart_items
 SET 
     quantity = quantity - 1,
     delta = delta - 1,
-    pendingSync = 1
+    pendingSync = 1,
+     syncVersion = syncVersion + 1   -- ← adicionar aqui
 WHERE id = :itemId
 """)
     suspend fun decreaseQuantity(itemId: Int)

@@ -1,5 +1,6 @@
 package com.austin.mesax.data.repository
 
+import android.util.Log
 import com.austin.mesax.data.api.AuthApi
 import com.austin.mesax.data.datastore.TokenManager
 import com.austin.mesax.data.responses.AuthResponses.AuthResponse
@@ -23,6 +24,8 @@ class AuthRepository @Inject constructor(
      */
     suspend fun login(email: String, password: String): AuthResponse {
         val response = api.login(LoginRequest(email, password))
+
+        Log.d("AuthRepository", "Login response: $response")
 
         tokenManager.saveToken(response.accessToken)
         tokenManager.saveAuthUser(response.user)
